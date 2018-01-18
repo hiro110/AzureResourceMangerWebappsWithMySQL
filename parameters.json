@@ -1,0 +1,21 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "siteName": {
+            "value": "webappshoge-hproducts"
+        },
+        "deployLocation":{
+            "value": "japaneast"
+        },
+        "skuName": {
+            "value": "S1"
+         },
+        "administratorDBLogin": {
+            "value": "mysqladmin"
+        },
+        "administratorDBLoginPassword": {
+            "value": "3va7p2r8F32P"
+        }
+    }
+}

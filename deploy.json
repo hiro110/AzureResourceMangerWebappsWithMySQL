@@ -1,0 +1,548 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "siteName": {
+            "defaultValue": "arm-template",
+            "type": "String"
+        },
+        "deployLocation": {
+            "type": "string",
+            "defaultValue": "japaneast",
+            "allowedValues": [
+                "japanwest",
+                "japaneast",
+                "westus",
+                "westus2",
+                "eastus",
+                "eastus2",
+                "southeastasia"
+              ]
+        },
+        "skuTier": {
+          "type": "string",
+          "defaultValue": "Standard",
+          "allowedValues": [
+            "Basic",
+            "Standard",
+            "Premium"
+          ]
+        },
+        "skuName": {
+            "type": "string",
+            "defaultValue": "S1",
+            "allowedValues": [
+              "S1",
+              "S2",
+              "S3",
+              "P1",
+              "P2",
+              "P3",
+              "P4"
+            ]
+        },
+        "skuCapacity": {
+            "type": "int",
+            "defaultValue": 1,
+            "minValue": 1,
+            "metadata": {
+              "description": "App Service Plan's instance count"
+            }
+        },
+        "alertRulesInternalError": {
+            "type": "string",            
+            "defaultValue": "InternalError"
+        },
+        "alertRulesAverageResponseTime": {
+            "type": "string",
+            "defaultValue": "AverageResponseTime"
+        },
+        "alertRulesAverageMemoryUsage": {
+            "type": "string",
+            "defaultValue": "AverageMemoryUsage"
+        },
+        "alertrules_404_Not_Found_name": {
+            "type": "string",
+            "defaultValue": "404 Not Found"
+        },
+        "config_web_name": {
+            "type": "string",
+            "defaultValue": "web"
+        },
+        "alertrules_401_Unauthorized_name": {
+            "type": "string",
+            "defaultValue": "401 Unauthorized"
+        },
+        "notification_Destination_Email": {
+            "type": "string",
+            "defaultValue": "pd-its-infra@hakuhodo.co.jp"
+        },
+        "applicationinsightLocation": {
+            "type": "string",
+            "defaultValue": "southeastasia",
+            "allowedValues": [
+                "northeurope",
+                "westeurope",
+                "westus2",
+                "eastus",
+                "southcentralus",
+                "southeastasia"
+              ]
+        },
+        "administratorDBLogin":{  
+           "type":"string",
+           "minLength":1,
+           "metadata":{  
+              "description":"Database administrator login name"
+           }
+        },
+        "administratorDBLoginPassword":{  
+           "type":"securestring",
+           "minLength":8,
+           "maxLength":128,
+           "metadata":{  
+              "description":"Database administrator password"
+           }
+        },
+        "databaseDTU":{  
+           "type":"int",
+           "allowedValues":[  
+              50,
+              100
+           ],
+           "defaultValue":50,
+           "metadata":{  
+              "description":"Azure database for MySQL pricing tier"
+           }
+        },
+        "databaseSkuName":{  
+           "type":"string",
+           "allowedValues":[  
+              "MYSQLB100",
+              "MYSQLB50"
+           ],
+           "defaultValue":"MYSQLB100",
+           "metadata":{  
+              "description":"Azure database for MySQL sku name: MySQL Basic 50 DTU (MYSQLB50)or 100 DTU (MYSQLB100)"
+           }
+        },
+        "databaseSkuSizeMB":{  
+           "type":"int",
+           "allowedValues":[  
+              102400,
+              51200
+           ],
+           "defaultValue":51200,
+           "metadata":{  
+              "description":"Azure database for MySQL Sku Size "
+           }
+        },
+        "databaseSkuTier":{  
+           "type":"string",
+           "allowedValues":[  
+              "Basic"
+           ],
+           "defaultValue":"Basic",
+           "metadata":{  
+              "description":"Azure database for MySQL pricing tier"
+           }
+        },
+        "mysqlVersion":{  
+           "type":"string",
+           "allowedValues":[  
+              "5.6",
+              "5.7"
+           ],
+           "defaultValue":"5.6",
+           "metadata":{  
+              "description":"MySQL version"
+           }
+        }
+    },
+    "variables": {
+        "hostingPlanName":"[concat(parameters('siteName'), '-serviceplan')]",
+        "databaseName": "[concat(parameters('siteName'), 'database')]",
+        "dbServerName": "[concat(parameters('siteName'), '-mysqlserver')]"
+    },
+    "resources": [
+        {
+            "comments": "App Service Plan Infomation",
+            "type": "Microsoft.Web/serverfarms",
+            "sku": {
+                "name": "[parameters('skuName')]",
+                "tier": "[parameters('skuTier')]",
+                "capacity": "[parameters('skuCapacity')]"
+            },
+            "kind": "app",
+            "name": "[variables('hostingPlanName')]",
+            "apiVersion": "2016-09-01",
+            "location": "[parameters('deployLocation')]",
+            "properties": {
+                "name": "[variables('hostingPlanName')]",
+                "workerTierName": null,
+                "adminSiteName": null,
+                "hostingEnvironmentProfile": null,
+                "perSiteScaling": false,
+                "reserved": false,
+                "targetWorkerCount": 0,
+                "targetWorkerSizeId": 0
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "App Service Infomation",
+            "type": "Microsoft.Web/sites",
+            "kind": "app",
+            "name": "[parameters('siteName')]",
+            "apiVersion": "2016-08-01",
+            "location": "[parameters('deployLocation')]",
+            "properties": {
+                "enabled": true,
+                "hostNameSslStates": [
+                    {
+                        "name": "[concat(parameters('siteName'),'.azurewebsites.net')]",
+                        "sslState": "Disabled",
+                        "virtualIP": null,
+                        "thumbprint": null,
+                        "toUpdate": null,
+                        "hostType": "Standard"
+                    },
+                    {
+                        "name": "[concat(parameters('siteName'),'.scm.azurewebsites.net')]",
+                        "sslState": "Disabled",
+                        "virtualIP": null,
+                        "thumbprint": null,
+                        "toUpdate": null,
+                        "hostType": "Repository"
+                    }
+                ],
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]",
+                "reserved": false,
+                "siteConfig": null,
+                "scmSiteAlsoStopped": false,
+                "hostingEnvironmentProfile": null,
+                "clientAffinityEnabled": true,
+                "clientCertEnabled": false,
+                "hostNamesDisabled": false,
+                "containerSize": 0,
+                "dailyMemoryTimeQuota": 0,
+                "cloningInfo": null
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]"
+            ]
+        },
+        {
+            "comments": "Application Configuration",
+            "type": "Microsoft.Web/sites/config",
+            "name": "[concat(parameters('siteName'), '/', parameters('config_web_name'))]",
+            "apiVersion": "2016-08-01",
+            "location": "[parameters('deployLocation')]",
+            "properties": {
+                "numberOfWorkers": 1,
+                "defaultDocuments": [
+                    "Default.htm",
+                    "Default.html",
+                    "Default.asp",
+                    "index.htm",
+                    "index.html",
+                    "iisstart.htm",
+                    "default.aspx",
+                    "index.php",
+                    "hostingstart.html"
+                ],
+                "netFrameworkVersion": "v4.0",
+                "phpVersion": "5.6",
+                "pythonVersion": "",
+                "nodeVersion": "",
+                "linuxFxVersion": "",
+                "requestTracingEnabled": true,
+                "requestTracingExpirationTime": "9999-12-31T23:59:00Z",
+                "remoteDebuggingEnabled": false,
+                "remoteDebuggingVersion": "VS2012",
+                "httpLoggingEnabled": true,
+                "logsDirectorySizeLimit": 35,
+                "detailedErrorLoggingEnabled": true,
+                "publishingUsername": "$arm-template",
+                "publishingPassword": null,
+                "appSettings": null,
+                "metadata": null,
+                "connectionStrings": null,
+                "machineKey": null,
+                "handlerMappings": null,
+                "documentRoot": null,
+                "scmType": "None",
+                "use32BitWorkerProcess": false,
+                "webSocketsEnabled": false,
+                "alwaysOn": true,
+                "javaVersion": null,
+                "javaContainer": null,
+                "javaContainerVersion": null,
+                "appCommandLine": "",
+                "managedPipelineMode": "Integrated",
+                "virtualApplications": [
+                    {
+                        "virtualPath": "/",
+                        "physicalPath": "site\\wwwroot",
+                        "preloadEnabled": true,
+                        "virtualDirectories": null
+                    }
+                ],
+                "winAuthAdminState": 0,
+                "winAuthTenantState": 0,
+                "customAppPoolIdentityAdminState": false,
+                "customAppPoolIdentityTenantState": false,
+                "runtimeADUser": null,
+                "runtimeADUserPassword": null,
+                "loadBalancing": "LeastRequests",
+                "routingRules": [],
+                "experiments": {
+                    "rampUpRules": []
+                },
+                "limits": null,
+                "autoHealEnabled": false,
+                "autoHealRules": null,
+                "tracingOptions": null,
+                "vnetName": "",
+                "siteAuthEnabled": false,
+                "cors": null,
+                "push": null,
+                "apiDefinition": null,
+                "autoSwapSlotName": null,
+                "localMySqlEnabled": true,
+                "ipSecurityRestrictions": null
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
+            ]
+        },
+        {
+            "comments": "Alert Rules 401 Unauthorized",
+            "type": "Microsoft.Insights/alertrules",
+            "name": "[parameters('alertrules_401_Unauthorized_name')]",
+            "apiVersion": "2014-04-01",
+            "location": "[parameters('applicationinsightLocation')]",
+            "tags": {},
+            "scale": null,
+            "properties": {
+                "name": "[parameters('alertrules_401_Unauthorized_name')]",
+                "description": "",
+                "isEnabled": true,
+                "condition": {
+                    "odata.type": "Microsoft.Azure.Management.Insights.Models.ThresholdRuleCondition",
+                    "dataSource": {
+                        "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleMetricDataSource",
+                        "resourceUri": "[resourceId('Microsoft.Web/sites', parameters('siteName'))]",
+                        "metricNamespace": null,
+                        "metricName": "Http401"
+                    },
+                    "operator": "GreaterThan",
+                    "threshold": 3,
+                    "windowSize": "PT15M"
+                },
+                "action": {
+                    "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleEmailAction",
+                    "sendToServiceOwners": false,
+                    "customEmails": [
+                        "[parameters('notification_Destination_Email')]"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
+            ]
+        },
+        {
+            "comments": "Alert Rules 404 Not Found",
+            "type": "Microsoft.Insights/alertrules",
+            "name": "[parameters('alertrules_404_Not_Found_name')]",
+            "apiVersion": "2014-04-01",
+            "location": "[parameters('applicationinsightLocation')]",
+            "tags": {},
+            "scale": null,
+            "properties": {
+                "name": "[parameters('alertrules_404_Not_Found_name')]",
+                "description": "",
+                "isEnabled": true,
+                "condition": {
+                    "odata.type": "Microsoft.Azure.Management.Insights.Models.ThresholdRuleCondition",
+                    "dataSource": {
+                        "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleMetricDataSource",
+                        "resourceUri": "[resourceId('Microsoft.Web/sites', parameters('siteName'))]",
+                        "metricNamespace": null,
+                        "metricName": "Http404"
+                    },
+                    "operator": "GreaterThan",
+                    "threshold": 3,
+                    "windowSize": "PT15M"
+                },
+                "action": {
+                    "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleEmailAction",
+                    "sendToServiceOwners": false,
+                    "customEmails": [
+                        "[parameters('notification_Destination_Email')]"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
+            ]
+        },
+        {
+            "comments": "Alert Rules InternalError(5xx, 6xx)",
+            "type": "Microsoft.Insights/alertrules",
+            "name": "[parameters('alertRulesInternalError')]",
+            "apiVersion": "2014-04-01",
+            "location": "[parameters('applicationinsightLocation')]",
+            "scale": null,
+            "properties": {
+                "name": "[parameters('alertRulesInternalError')]",
+                "description": "",
+                "isEnabled": true,
+                "condition": {
+                    "odata.type": "Microsoft.Azure.Management.Insights.Models.ThresholdRuleCondition",
+                    "dataSource": {
+                        "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleMetricDataSource",
+                        "resourceUri": "[resourceId('Microsoft.Web/sites', parameters('siteName'))]",
+                        "metricNamespace": null,
+                        "metricName": "Http5xx"
+                    },
+                    "operator": "GreaterThan",
+                    "threshold": 1,
+                    "windowSize": "PT15M"
+                },
+                "action": {
+                    "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleEmailAction",
+                    "sendToServiceOwners": false,
+                    "customEmails": [
+                        "[parameters('notification_Destination_Email')]"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
+            ]
+        },
+        {
+            "comments": "Alert Rules AverageMemoryUsage",
+            "type": "Microsoft.Insights/alertrules",
+            "name": "[parameters('alertRulesAverageMemoryUsage')]",
+            "apiVersion": "2014-04-01",
+            "location": "[parameters('deployLocation')]",
+            "scale": null,
+            "properties": {
+                "name": "[parameters('alertRulesAverageMemoryUsage')]",
+                "description": "",
+                "isEnabled": true,
+                "condition": {
+                    "odata.type": "Microsoft.Azure.Management.Insights.Models.ThresholdRuleCondition",
+                    "dataSource": {
+                        "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleMetricDataSource",
+                        "resourceUri": "[resourceId('Microsoft.Web/sites', parameters('siteName'))]",
+                        "metricNamespace": null,
+                        "metricName": "AverageMemoryWorkingSet"
+                    },
+                    "operator": "GreaterThan",
+                    "threshold": 1288490188,
+                    "windowSize": "PT15M"
+                },
+                "action": {
+                    "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleEmailAction",
+                    "sendToServiceOwners": false,
+                    "customEmails": [
+                        "[parameters('notification_Destination_Email')]"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
+            ]
+        },
+        {
+            "comments": "Alert Rules AverageResponseTime",
+            "type": "Microsoft.Insights/alertrules",
+            "name": "[parameters('alertRulesAverageResponseTime')]",
+            "apiVersion": "2014-04-01",
+            "location": "[parameters('deployLocation')]",
+            "scale": null,
+            "properties": {
+                "name": "[parameters('alertRulesAverageResponseTime')]",
+                "description": "",
+                "isEnabled": true,
+                "condition": {
+                    "odata.type": "Microsoft.Azure.Management.Insights.Models.ThresholdRuleCondition",
+                    "dataSource": {
+                        "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleMetricDataSource",
+                        "resourceUri": "[resourceId('Microsoft.Web/sites', parameters('siteName'))]",
+                        "metricNamespace": null,
+                        "metricName": "AverageResponseTime"
+                    },
+                    "operator": "GreaterThan",
+                    "threshold": 4,
+                    "windowSize": "PT15M"
+                },
+                "action": {
+                    "odata.type": "Microsoft.Azure.Management.Insights.Models.RuleEmailAction",
+                    "sendToServiceOwners": false,
+                    "customEmails": [
+                        "[parameters('notification_Destination_Email')]"
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/sites', parameters('siteName'))]"
+            ]
+        },
+        {
+            "comments": "Application Insight Information",
+            "type": "Microsoft.Insights/components",
+            "kind": "web",
+            "name": "[parameters('siteName')]",
+            "apiVersion": "2014-04-01",
+            "location": "[parameters('applicationinsightLocation')]",
+            "scale": null,
+            "properties": {
+                "ApplicationId": "[parameters('siteName')]"
+            },
+            "dependsOn": []
+        },
+        {
+            "comments": "Azure Database for MySQL Setting",
+            "name": "[variables('dbServerName')]",
+            "type": "Microsoft.DBforMySQL/servers",
+            "apiVersion": "2017-04-30-preview",
+            "sku": {
+              "name": "[parameters('databaseSkuName')]",
+              "tier": "[parameters('databaseSkuTier')]",
+              "capacity": "[parameters('databaseDTU')]",
+              "size": "[parameters('databaseSkuSizeMB')]",
+              "family": "SkuFamily"
+            },
+            "properties": {
+              "administratorLogin": "[parameters('administratorDBLogin')]",
+              "administratorLoginPassword": "[parameters('administratorDBLoginPassword')]",
+              "storageMB": "[parameters('databaseSkuSizeMB')]",
+              "version": "[parameters('mysqlVersion')]",
+              "sslEnforcement": "Enabled"
+            },
+            "location": "[parameters('deployLocation')]",
+            "resources": [
+                {
+                    "comments": "Firewall Setting",
+                    "name": "ANY",
+                    "type": "firewallRules",
+                    "apiVersion": "2017-04-30-preview",
+                    "properties": {
+                        "startIpAddress": "0.0.0.0",
+                        "endIpAddress": "255.255.255.255"
+                    },
+                    "dependsOn": [
+                      "[concat('Microsoft.DBforMySQL/servers/', variables('dbServerName'))]"
+                    ]
+                }
+            ]
+        }
+    ],
+    "outputs": {
+    }
+}
